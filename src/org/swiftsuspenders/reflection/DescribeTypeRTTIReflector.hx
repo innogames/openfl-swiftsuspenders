@@ -176,7 +176,7 @@ class DescribeTypeRTTIReflector implements Reflector
 			var _inWhitelist = inWhitelist(type);
 			
 			if (!_isInterface && !_inWhitelist) {
-				//trace("Warning: " + Type.getClassName((type) + " missing @:rtti matadata");
+				throw Type.getClassName(type) + " is missing @:rtti matadata";
 			}
 		}
 		
@@ -242,7 +242,7 @@ class DescribeTypeRTTIReflector implements Reflector
 	{
 		// TEMP (no CtorInjectionPoints will be added)
 		
-		if (constructorElem == null) {
+		if (constructorElem == null || !hasValidParameters(constructorElem.x)) {
 			description.ctor = new NoParamsConstructorInjectionPoint();
 			return;
 		}
@@ -268,8 +268,8 @@ class DescribeTypeRTTIReflector implements Reflector
 		}
 		description.ctor = new ConstructorInjectionPoint(parameters, requiredParameters, injectParameters);
 	}
-	
-	function parametersFromXml(x:Xml):Array<String>
+
+	private function parametersFromXml(x:Xml):Array<String>
 	{
 		var parameters:Array<String> = [];
 		for (node in x.firstElement().iterator()) 
@@ -281,6 +281,21 @@ class DescribeTypeRTTIReflector implements Reflector
 		}
 		parameters.pop();
 		return parameters;
+	}
+
+	private function hasValidParameters(x:Xml):Bool
+	{
+		for (node in x.firstElement().iterator())
+		{
+			if(node.nodeType == Xml.Element ){
+				var nodeFast = new Fast(node);
+				if (!nodeFast.has.path) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 	
 	// FIX
