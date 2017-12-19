@@ -176,7 +176,7 @@ class DescribeTypeRTTIReflector implements Reflector
 			var _inWhitelist = inWhitelist(type);
 			
 			if (!_isInterface && !_inWhitelist) {
-				throw Type.getClassName(type) + " is missing @:rtti matadata";
+                trace("Warning: " + Type.getClassName(type) + " is missing @:rtti metadata");
 			}
 		}
 		
