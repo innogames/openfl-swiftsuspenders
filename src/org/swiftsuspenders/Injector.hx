@@ -10,6 +10,7 @@ package org.swiftsuspenders;
 /*#if flash
 	import org.swiftsuspenders.reflection.DescribeTypeJSONReflector;
 #else*/
+	import org.swiftsuspenders.typedescriptions.PostConstructInjectionPoint;
 	import org.swiftsuspenders.reflection.DescribeTypeRTTIReflector;
 //#end
 
@@ -453,7 +454,13 @@ class Injector extends EventDispatcher
 		#else
 		var type:Class<Dynamic> = _reflector.getClass(target);
 		#end
-		
+
+		var injectionPoint: InjectionPoint = _classDescriptor.getDescription(type).injectionPoints;
+		while (injectionPoint != null)
+		{
+			injectionPoint = injectionPoint.next;
+		}
+
 		applyInjectionPoints(target, type, _classDescriptor.getDescription(type));
 	}
 
@@ -789,11 +796,23 @@ class Injector extends EventDispatcher
 		if (hasEventListener(InjectionEvent.PRE_CONSTRUCT)) {
 			dispatchEvent(new InjectionEvent(InjectionEvent.PRE_CONSTRUCT, target, targetType));
 		}
+
+		var postConstructionInjectionsPoints: Array<InjectionPoint> = [];
 		while (injectionPoint != null)
 		{
-			injectionPoint.applyInjection(target, targetType, this);
+			if (Std.is(injectionPoint, PostConstructInjectionPoint)) {
+				postConstructionInjectionsPoints.push(injectionPoint);
+			} else {
+				injectionPoint.applyInjection(target, targetType, this);
+			}
+
 			injectionPoint = injectionPoint.next;
 		}
+
+		for (injectionPoint in postConstructionInjectionsPoints) {
+			injectionPoint.applyInjection(target, targetType, this);
+		}
+
 		if (description.preDestroyMethods != null)
 		{
 			_managedObjects.set(UID.instanceID(target), target);
