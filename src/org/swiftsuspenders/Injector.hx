@@ -805,6 +805,10 @@ class Injector extends EventDispatcher
 
 		for (injectionPoint in postConstructionInjectionsPoints) {
 			injectionPoint.applyInjection(target, targetType, this);
+
+			// we always only want to call the postContruct of the extending class and not of all inherited classes
+			// if you want to call the postConstruct of an inhereted class, use super.postConstruct
+			break;
 		}
 
 		if (description.preDestroyMethods != null)
