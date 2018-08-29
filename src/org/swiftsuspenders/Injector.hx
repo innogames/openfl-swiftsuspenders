@@ -10,7 +10,8 @@ package org.swiftsuspenders;
 /*#if flash
 	import org.swiftsuspenders.reflection.DescribeTypeJSONReflector;
 #else*/
-	import org.swiftsuspenders.typedescriptions.PostConstructInjectionPoint;
+import haxe.ds.ObjectMap;
+import org.swiftsuspenders.typedescriptions.PostConstructInjectionPoint;
 	import org.swiftsuspenders.reflection.DescribeTypeRTTIReflector;
 //#end
 
@@ -232,7 +233,7 @@ class Injector extends EventDispatcher
 	private var _mappings:Map<String,InjectionMapping>;
 	
 	private var _mappingsInProcess:Map<String,Bool>;
-	private var _managedObjects:Map<String,Dynamic>;
+	private var _managedObjects:ObjectMap<Dynamic,Bool>;
 	private var _reflector:Reflector;
 	
 	
@@ -291,7 +292,7 @@ class Injector extends EventDispatcher
 	{
 		_mappings = new Map<String,InjectionMapping>();
 		_mappingsInProcess = new Map<String,Bool>();
-		_managedObjects = new Map<String,Dynamic>();
+		_managedObjects = new ObjectMap<Dynamic,Bool>();
 		/*#if flash
 			_reflector = new DescribeTypeJSONReflector();
 		#else*/
@@ -434,7 +435,7 @@ class Injector extends EventDispatcher
 	 */
 	public function hasManagedInstance(instance:Dynamic):Bool
 	{
-		return _managedObjects.exists(UID.instanceID(instance));
+		return _managedObjects.exists(instance);
 	}
 
 	/**
@@ -569,7 +570,7 @@ class Injector extends EventDispatcher
 	 */
 	public function destroyInstance(instance:Dynamic):Void
 	{
-		_managedObjects.remove(UID.clearInstanceID(instance));
+		_managedObjects.remove(instance);
 		
 		#if (haxe_ver >= 3.40)
 		var type:Class<Dynamic> = Type.getClass(instance);
@@ -606,7 +607,7 @@ class Injector extends EventDispatcher
 		var objectsToRemove:Array<Dynamic> = new Array<Dynamic>();
 		var fields;
 		// CHECK
-		for ( instance in _managedObjects)
+		for ( instance in _managedObjects.keys())
 		{
 			if (instance) objectsToRemove.push(instance);
 		}
@@ -621,7 +622,7 @@ class Injector extends EventDispatcher
 		}
 		_mappings = new Map<String,InjectionMapping>();
 		_mappingsInProcess = new Map<String,Bool>();
-		_managedObjects = new Map<String,Dynamic>();
+		_managedObjects = new ObjectMap<Dynamic,Bool>();
 		this.fallbackProvider = null;
 		this.blockParentFallbackProvider = false;
 	}
@@ -813,7 +814,7 @@ class Injector extends EventDispatcher
 
 		if (description.preDestroyMethods != null)
 		{
-			_managedObjects.set(UID.instanceID(target), target);
+			_managedObjects.set(target, true);
 		}
 		hasEventListener(InjectionEvent.POST_CONSTRUCT) && dispatchEvent(new InjectionEvent(InjectionEvent.POST_CONSTRUCT, target, targetType));
 	}

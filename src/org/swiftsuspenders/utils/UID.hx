@@ -35,27 +35,4 @@ class UID
 		}
 		return className;
 	}
-	
-	// Be careful here (you are storing references to objects)
-	private static var classRefs = new ObjectMap<Dynamic,String>();
-	private static var count:Int = 0;
-	
-	public static function instanceID(source:Dynamic):String
-	{
-		if (!classRefs.exists(source)) {
-			classRefs.set(source, "id"+ (count++));
-		}
-		return classRefs.get(source);
-	}
-	
-	public static function clearInstanceID(source:Dynamic):String
-	{
-		var id:String = classRefs.get(source);
-		if (id != null) {
-			classRefs.remove(source);
-			return id;
-		}
-		//throw new Error("instanceID: " + source + " is not in use");
-		return "";
-	}
 }
