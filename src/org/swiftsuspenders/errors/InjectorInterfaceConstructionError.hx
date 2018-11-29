@@ -7,7 +7,6 @@
 
 package org.swiftsuspenders.errors;
 
-@:keepSub
 class InjectorInterfaceConstructionError extends InjectorError
 {
 	public function new(message :Dynamic = "", id :Dynamic = 0)

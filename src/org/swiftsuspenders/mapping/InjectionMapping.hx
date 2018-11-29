@@ -18,7 +18,6 @@ import org.swiftsuspenders.dependencyproviders.SoftDependencyProvider;
 import org.swiftsuspenders.dependencyproviders.ValueProvider;
 import org.swiftsuspenders.errors.InjectorError;
 
-@:keepSub
 class InjectionMapping implements ProviderlessMapping implements UnsealedMapping
 {
 	//----------------------       Private / Protected Properties       ----------------------//
@@ -298,9 +297,9 @@ class InjectionMapping implements ProviderlessMapping implements UnsealedMapping
 	/**
 	 * @return <code>true</code> if the mapping is sealed, <code>false</code> if not
 	 */
-	
+
 	public var isSealed(get_isSealed, null):Bool;
-	
+
 	public function get_isSealed():Bool
 	{
 		return _sealed;
@@ -346,7 +345,7 @@ class InjectionMapping implements ProviderlessMapping implements UnsealedMapping
 		// CHECK
 		//_sealed && throwSealedError();
 		if (_sealed) throwSealedError();
-		
+
 		if (injector == _overridingInjector)
 		{
 			return this;
@@ -373,7 +372,7 @@ class InjectionMapping implements ProviderlessMapping implements UnsealedMapping
 		{
 			provider = new InjectorUsingProvider(_overridingInjector, provider);
 		}
-		
+
 		_creatingInjector.providerMappings[_mappingId] = provider;
 	}
 

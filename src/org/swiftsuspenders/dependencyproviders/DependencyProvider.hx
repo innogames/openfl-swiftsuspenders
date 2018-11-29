@@ -9,7 +9,6 @@ package org.swiftsuspenders.dependencyproviders;
 
 import org.swiftsuspenders.Injector;
 
-@:keepSub
 interface DependencyProvider
 {
 	/**

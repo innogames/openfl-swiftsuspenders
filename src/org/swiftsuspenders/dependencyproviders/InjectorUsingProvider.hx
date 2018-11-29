@@ -9,7 +9,6 @@ package org.swiftsuspenders.dependencyproviders;
 
 import org.swiftsuspenders.Injector;
 
-@:keepSub
 class InjectorUsingProvider extends ForwardingProvider
 {
 	//----------------------              Public Properties             ----------------------//

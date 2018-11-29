@@ -9,7 +9,6 @@ package org.swiftsuspenders.mapping;
 
 import openfl.events.Event;
 
-@:keepSub
 class MappingEvent extends Event
 {
 	//----------------------              Public Properties             ----------------------//
