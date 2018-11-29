@@ -7,128 +7,42 @@
 
 package org.swiftsuspenders.typedescriptions;
 
+import org.swiftsuspenders.Injector;
 
-
-import org.swiftsuspenders.errors.InjectorError;
-import org.swiftsuspenders.utils.CallProxy;
-
-@:keepSub
-class TypeDescription
-{
+class TypeDescription {
 	//----------------------              Public Properties             ----------------------//
 	public var ctor:ConstructorInjectionPoint;
-	public var injectionPoints:InjectionPoint;
-	public var preDestroyMethods:PreDestroyInjectionPoint;
+	public var injectionMethods:Array<Dynamic->Injector->Void>;
+	public var preDestroyMethods:Array<Dynamic->Void>;
+	public var postConstructionMethods:Array<Dynamic->Void>;
 
-	//----------------------       Private / Protected Properties       ----------------------//
-	private var _postConstructAdded:Bool;
-	
 	//----------------------               Public Methods               ----------------------//
-	public function new(useDefaultConstructor:Bool = true)
+	public function new()
 	{
-		if (useDefaultConstructor)
-		{
-			ctor = new NoParamsConstructorInjectionPoint();
-		}
-		
+		ctor = NoParamsConstructorInjectionPoint.instance;
 	}
 
-	public function setConstructor(parameterTypes:Array<Dynamic>, parameterNames:Array<Dynamic> = null, requiredParameters:UInt = 0x3FFFFFFF, metadata:Map<Dynamic,Dynamic> = null):TypeDescription
+	public function addPostConstructMethod(func:Dynamic->Void)
 	{
-		var param:Array<Dynamic>;
-		if (parameterNames != null) param = parameterNames;
-		else param = [];
-		
-		ctor = new ConstructorInjectionPoint(createParameterMappings(parameterTypes, param), requiredParameters, metadata);
-		return this;
-	}
-
-	public function addFieldInjection(fieldName:String, type:Class<Dynamic>, injectionName:String = '', optional:Bool = false, metadata:Map<Dynamic,Dynamic> = null):TypeDescription
-	{
-		if (_postConstructAdded)
-		{
-			throw new InjectorError('Can\'t add injection point after post construct method');
-		}
-		addInjectionPoint(new PropertyInjectionPoint(
-			Type.getClassName(type) + '|' + injectionName, fieldName, optional, metadata));
-		return this;
-	}
-
-	public function addMethodInjection(methodName:String, parameterTypes:Array<Dynamic>, parameterNames:Array<Dynamic> = null, requiredParameters:UInt = 0x3FFFFFFF, optional:Bool = false, metadata:Map<Dynamic,Dynamic> = null):TypeDescription
-	{
-		if (_postConstructAdded)
-		{
-			throw new InjectorError('Can\'t add injection point after post construct method');
-		}
-		var param:Array<Dynamic>;
-		if (parameterNames != null) param = parameterNames;
-		else param = [];
-		
-		addInjectionPoint(new MethodInjectionPoint(
-			methodName, createParameterMappings(parameterTypes, param),
-			cast(Math.min(requiredParameters, parameterTypes.length), UInt), optional, metadata));
-		return this;
-	}
-
-	public function addPostConstructMethod(methodName:String, parameterTypes:Array<Dynamic>, parameterNames:Array<Dynamic> = null, requiredParameters:UInt = 0x3FFFFFFF):TypeDescription
-	{
-		var param:Array<Dynamic>;
-		if (parameterNames != null) param = parameterNames;
-		else param = [];
-		
-		_postConstructAdded = true;
-		addInjectionPoint(new PostConstructInjectionPoint(
-			methodName, createParameterMappings(parameterTypes, param),
-			cast(Math.min(requiredParameters, parameterTypes.length), UInt), 0));
-		return this;
-	}
-
-	public function addPreDestroyMethod(methodName:String, parameterTypes:Array<Dynamic>, parameterNames:Array<Dynamic> = null, requiredParameters:UInt = 0x3FFFFFFF):TypeDescription
-	{
-		var param:Array<Dynamic>;
-		if (parameterNames != null) param = parameterNames;
-		else param = [];
-		
-		var method:PreDestroyInjectionPoint = new PreDestroyInjectionPoint(
-			methodName, createParameterMappings(parameterTypes, param),
-			cast(Math.min(requiredParameters, parameterTypes.length), UInt), 0);
-		if (preDestroyMethods != null)
-		{
-			preDestroyMethods.last.next = method;
-			preDestroyMethods.last = method;
-		}
+		if (postConstructionMethods == null)
+			postConstructionMethods = [func];
 		else
-		{
-			preDestroyMethods = method;
-			preDestroyMethods.last = method;
-		}
-		return this;
+			postConstructionMethods.push(func);
 	}
 
-	public function addInjectionPoint(injectionPoint:InjectionPoint):Void
+	public function addPreDestroyMethod(func:Dynamic->Void)
 	{
-		if (injectionPoints != null)
-		{
-			injectionPoints.last.next = injectionPoint;
-			injectionPoints.last = injectionPoint;
-		}
+		if (preDestroyMethods == null)
+			preDestroyMethods = [func];
 		else
-		{
-			injectionPoints = injectionPoint;
-			injectionPoints.last = injectionPoint;
-		}
+			preDestroyMethods.push(func);
 	}
 
-	//----------------------         Private / Protected Methods        ----------------------//
-	private function createParameterMappings(parameterTypes:Array<Dynamic>, parameterNames:Array<Dynamic>):Array<Dynamic>
+	public function addInjectionMethod(func:Dynamic->Injector->Void)
 	{
-		var parameters = new Array<Dynamic>();
-		for (n in 0...parameterTypes.length)
-		{
-			var i = parameters.length - n;
-			parameters[i] = Type.getClassName(parameterTypes[i]) + '|';
-			if (parameterNames[i]) parameters[i] += parameterNames[i];
-		}
-		return parameters;
+		if (injectionMethods == null)
+			injectionMethods = [func];
+		else
+			injectionMethods.push(func);
 	}
 }

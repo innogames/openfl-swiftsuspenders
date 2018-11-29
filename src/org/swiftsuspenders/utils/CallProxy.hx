@@ -4,15 +4,14 @@ package org.swiftsuspenders.utils;
  * ...
  * @author P.J.Shand
  */
-@:keepSub
 class CallProxy
 {
 
-	public function new() 
+	public function new()
 	{
-		
+
 	}
-	
+
 	public static function hasField( o:Dynamic, field:String):Bool
 	{
 		var fields;
@@ -22,10 +21,10 @@ class CallProxy
 			fields = Type.getInstanceFields(clazz);
 		}
 		else {
-			fields = Reflect.fields(o);	
+			fields = Reflect.fields(o);
 		}
-		
-		for (i in 0...fields.length) 
+
+		for (i in 0...fields.length)
 		{
 			if (fields[i] == field) return true;
 		}
@@ -40,7 +39,7 @@ class CallProxy
 			var isObject = Reflect.isObject(f);
 			if (isFunction || isObject) return true;
 			else return false;
-		#else 
+		#else
 			var hasField = Reflect.hasField(o, field);
 			return hasField;
 		#end

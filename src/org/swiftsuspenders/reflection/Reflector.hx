@@ -9,11 +9,8 @@ package org.swiftsuspenders.reflection;
 
 import org.swiftsuspenders.typedescriptions.TypeDescription;
 
-@:keepSub
 interface Reflector
 {
 	function getClass(value:Dynamic):Class<Dynamic>;
-	function getFQCN(value :Dynamic, replaceColons:Bool = false):String;
-	function typeImplements(type:Class<Dynamic>, superType:Class<Dynamic>):Bool;
 	function describeInjections(type:Class<Dynamic>):TypeDescription;
 }

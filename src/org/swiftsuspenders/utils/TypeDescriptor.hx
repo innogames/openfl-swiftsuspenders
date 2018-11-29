@@ -10,7 +10,6 @@ package org.swiftsuspenders.utils;
 import org.swiftsuspenders.reflection.Reflector;
 import org.swiftsuspenders.typedescriptions.TypeDescription;
 
-@:keepSub
 class TypeDescriptor
 {
 	//----------------------       Private / Protected Properties       ----------------------//
@@ -27,24 +26,24 @@ class TypeDescriptor
 
 	public function getDescription(type:Class<Dynamic>):TypeDescription
 	{
-		var id = UID.classID(type);
-		
+		var id = Type.getClassName(type);
+
 		//trace("id = " + id);
 		//trace("type = " + type);
-		
+
 		//get type description or cache it if the given type wasn't encountered before
 		if (_descriptionsCache[id] == null) {
-			
+
 			_descriptionsCache[id] = _reflector.describeInjections(type);
-			
+
 		}
-		
+
 		//_descriptionsCache[type] = _descriptionsCache[type] || _reflector.describeInjections(type);
 		return _descriptionsCache[id];
 	}
 
 	public function addDescription(type:Class<Dynamic>, description:TypeDescription):Void
 	{
-		_descriptionsCache[UID.classID(type)] = description;
+		_descriptionsCache[Type.getClassName(type)] = description;
 	}
 }

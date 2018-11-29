@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012 the original author or authors
  *
- * Permission is hereby granted to use, modify, and distribute this file 
+ * Permission is hereby granted to use, modify, and distribute this file
  * in accordance with the terms of the license agreement accompanying it.
  */
 
@@ -11,15 +11,11 @@ package org.swiftsuspenders;
 	import org.swiftsuspenders.reflection.DescribeTypeJSONReflector;
 #else*/
 import haxe.ds.ObjectMap;
-import org.swiftsuspenders.typedescriptions.PostConstructInjectionPoint;
-	import org.swiftsuspenders.reflection.DescribeTypeRTTIReflector;
+import org.swiftsuspenders.reflection.MacroReflector;
 //#end
 
 import avmplus.DescribeTypeJSON;
 import openfl.errors.Error;
-
-import org.swiftsuspenders.utils.CallProxy;
-import org.swiftsuspenders.utils.UID;
 
 import openfl.events.EventDispatcher;
 import openfl.system.ApplicationDomain;
@@ -34,9 +30,6 @@ import org.swiftsuspenders.errors.InjectorMissingMappingError;
 import org.swiftsuspenders.mapping.InjectionMapping;
 import org.swiftsuspenders.mapping.MappingEvent;
 import org.swiftsuspenders.reflection.Reflector;
-import org.swiftsuspenders.typedescriptions.ConstructorInjectionPoint;
-import org.swiftsuspenders.typedescriptions.InjectionPoint;
-import org.swiftsuspenders.typedescriptions.PreDestroyInjectionPoint;
 import org.swiftsuspenders.typedescriptions.TypeDescription;
 import org.swiftsuspenders.utils.TypeDescriptor;
 
@@ -123,7 +116,7 @@ import org.swiftsuspenders.utils.TypeDescriptor;
  * <p>At the point where the event is dispatched the changes haven't yet been applied, meaning the
  * mapping stored in the event can be queried for its pre-change state.</p>
  *
- * <p>This event is only dispatched if there are one or more relevant listeners attached to 
+ * <p>This event is only dispatched if there are one or more relevant listeners attached to
  * the dispatching injector.</p>
  *
  * @eventType org.swiftsuspenders.MappingEvent.PRE_MAPPING_CHANGE
@@ -136,7 +129,7 @@ import org.swiftsuspenders.utils.TypeDescriptor;
  * <p>At the point where the event is dispatched the changes have already been applied, meaning
  * the mapping stored in the event can be queried for its post-change state</p>
  *
- * <p>This event is only dispatched if there are one or more relevant listeners attached to 
+ * <p>This event is only dispatched if there are one or more relevant listeners attached to
  * the dispatching injector.</p>
  *
  * @eventType org.swiftsuspenders.MappingEvent.POST_MAPPING_CHANGE
@@ -149,7 +142,7 @@ import org.swiftsuspenders.utils.TypeDescriptor;
  * <p>At the point where the event is dispatched the changes have already been applied, meaning
  * the mapping is lost to the injector and can't be queried anymore.</p>
  *
- * <p>This event is only dispatched if there are one or more relevant listeners attached to 
+ * <p>This event is only dispatched if there are one or more relevant listeners attached to
  * the dispatching injector.</p>
  *
  * @eventType org.swiftsuspenders.MappingEvent.POST_MAPPING_REMOVE
@@ -162,7 +155,7 @@ import org.swiftsuspenders.utils.TypeDescriptor;
  * overriding existing mappings is a sign of bugs in the application. Deliberate mapping
  * changes should be done by first removing the existing mapping.</p>
  *
- * <p>This event is only dispatched if there are one or more relevant listeners attached to 
+ * <p>This event is only dispatched if there are one or more relevant listeners attached to
  * the dispatching injector.</p>
  *
  * @eventType org.swiftsuspenders.MappingEvent.POST_MAPPING_REMOVE
@@ -173,13 +166,12 @@ import org.swiftsuspenders.utils.TypeDescriptor;
  * The <code>Injector</code> manages the mappings and acts as the central hub from which all
  * injections are started.
  */
-@:keepSub
 class Injector extends EventDispatcher
 {
 	//----------------------       Private / Protected Properties       ----------------------//
 	private static var INJECTION_POINTS_CACHE = new Map<String,TypeDescription>();
 
-	
+
 	/**
 	 * Sets the <code>Injector</code> to ask in case the current <code>Injector</code> doesn't
 	 * have a mapping for a dependency.
@@ -190,7 +182,7 @@ class Injector extends EventDispatcher
 	 * @param parentInjector The <code>Injector</code> to use for dependencies the current
 	 * <code>Injector</code> can't supply
 	 */
-	
+
 	//private var _parentInjector:Injector;
 	/**
 	 * Returns the <code>Injector</code> used for dependencies the current
@@ -211,8 +203,8 @@ class Injector extends EventDispatcher
 	{
 		return this.parentInjector;
 	}
-	
-	
+
+
 	//private var _applicationDomain:ApplicationDomain;
 	@:isVar public var applicationDomain(get, set):ApplicationDomain;
 	function set_applicationDomain(applicationDomain:ApplicationDomain):ApplicationDomain
@@ -221,22 +213,22 @@ class Injector extends EventDispatcher
 		else this.applicationDomain = ApplicationDomain.currentDomain;
 		return this.applicationDomain;
 	}
-	
+
 	function get_applicationDomain():ApplicationDomain
 	{
 		return this.applicationDomain;
 	}
-	
-	
-	
+
+
+
 	private var _classDescriptor:TypeDescriptor;
 	private var _mappings:Map<String,InjectionMapping>;
-	
+
 	private var _mappingsInProcess:Map<String,Bool>;
 	private var _managedObjects:ObjectMap<Dynamic,Bool>;
 	private var _reflector:Reflector;
-	
-	
+
+
 	//private var _fallbackProvider:FallbackDependencyProvider;
 	@:isVar public var fallbackProvider(get, set):FallbackDependencyProvider;
 	function get_fallbackProvider():FallbackDependencyProvider
@@ -249,40 +241,40 @@ class Injector extends EventDispatcher
 		this.fallbackProvider = provider;
 		return provider;
 	}
-	
-	
-	
+
+
+
 	//private var _blockParentFallbackProvider:Bool = false;
 	@:isVar public var blockParentFallbackProvider(get, set):Bool;
 	function get_blockParentFallbackProvider():Bool
 	{
 		return this.blockParentFallbackProvider;
 	}
-	
+
 	function set_blockParentFallbackProvider(value:Bool):Bool
 	{
 		this.blockParentFallbackProvider = value;
 		return value;
 	}
-	
+
 	#if js
 	private static var _baseTypes:Array<String> = initBaseTypeMappingIds([Array, Class]);
 	#else
 	private static var _baseTypes:Array<String> = initBaseTypeMappingIds([Dynamic, Array, Class, Float, Int, String]);
 	#end
-	
+
 
  	private static function initBaseTypeMappingIds(types:Array<Dynamic>):Array<String>
 	{
 		// CHECK
 		var returnArray = new Array<String>();
-		for (i in 0...types.length) 
+		for (i in 0...types.length)
 		{
 			returnArray.push(Type.getClassName(types[i]) + '|');
 		}
 		return returnArray;
 	}
-	
+
 	//----------------------            Internal Properties             ----------------------//
 	public var providerMappings = new Map<String,DependencyProvider>();
 
@@ -296,9 +288,9 @@ class Injector extends EventDispatcher
 		/*#if flash
 			_reflector = new DescribeTypeJSONReflector();
 		#else*/
-			_reflector = new DescribeTypeRTTIReflector();
+			_reflector = new MacroReflector();
 		//#end
-		
+
 		_classDescriptor = new TypeDescriptor(_reflector, INJECTION_POINTS_CACHE);
 		this.applicationDomain = ApplicationDomain.currentDomain;
 		super();
@@ -324,7 +316,7 @@ class Injector extends EventDispatcher
 	public function map(type:Class<Dynamic>, name:String = ''):InjectionMapping
 	{
 		//InjectorMacro.keep(type);
-		
+
 		var mappingId:String = Type.getClassName(type) + '|' + name;
 		if (_mappings.exists(mappingId)) return _mappings.get(mappingId);
 		return createMapping(type, name, mappingId);
@@ -400,16 +392,16 @@ class Injector extends EventDispatcher
 	 * Returns the mapping for the specified dependency class
 	 *
 	 * <p>Note that getMapping will only return mappings in exactly this injector, not ones
-	 * mapped in an ancestor injector. To get mappings from ancestor injectors, query them 
+	 * mapped in an ancestor injector. To get mappings from ancestor injectors, query them
 	 * using <code>parentInjector</code>.
 	 * This restriction is in place to prevent accidential changing of mappings in ancestor
 	 * injectors where only the child's response is meant to be altered.</p>
-	 * 
+	 *
 	 * @param type The type of the dependency to return the mapping for
 	 * @param name The name of the dependency to return the mapping for
 	 *
 	 * @return The mapping for the specified dependency class
-	 * 
+	 *
 	 * @throws org.swiftsuspenders.errors.InjectorMissingMappingError when no mapping was found
 	 * for the specified dependency
 	 */
@@ -478,37 +470,25 @@ class Injector extends EventDispatcher
 	 */
 	public function getInstance(type:Class<Dynamic>, name:String = '', targetType:Class<Dynamic> = null) :Dynamic
 	{
-		var mappingId:String = Type.getClassName(type) + '|' + name;
-		var provider:DependencyProvider;
-		if (getProvider(mappingId) != null) {
-			provider = getProvider(mappingId);
+		var mappingId = Type.getClassName(type) + '|' + name;
+		var instance = getInstanceForMapping(mappingId, type, targetType);
+		if (instance == null) {
+			throw new InjectorMissingMappingError('No mapping found for request ' + mappingId);
 		}
-		else {
+		return instance;
+	}
+
+	public function getInstanceForMapping(mappingId:String, type:Class<Dynamic>, targetType:Class<Dynamic>) :Dynamic
+	{
+		var provider = getProvider(mappingId);
+		if (provider == null) {
 			provider = getDefaultProvider(mappingId, true);
 		}
-		//var provider:DependencyProvider = getProvider(mappingId) || getDefaultProvider(mappingId, true);
-		if(provider != null)
-		{
-			var ctor:ConstructorInjectionPoint = _classDescriptor.getDescription(type).ctor;
-			var returnVal;
-			if (ctor != null) returnVal = provider.apply(targetType, this, ctor.injectParameters);
-			else returnVal = provider.apply(targetType, this, null);
-			return returnVal;
+		if (provider != null) {
+			return provider.apply(targetType, this, null);
+		} else {
+			return null;
 		}
-		
-		var fallbackMessage:String;
-		if (this.fallbackProvider != null) {
-			fallbackMessage = "the fallbackProvider, '" + this.fallbackProvider + "', was unable to fulfill this request.";
-		}
-		else {
-			fallbackMessage = "the injector has no fallbackProvider.";
-		}
-		/*var fallbackMessage:String = this.fallbackProvider
-			? "the fallbackProvider, '" + this.fallbackProvider + "', was unable to fulfill this request."
-			: "the injector has no fallbackProvider.";*/
-		
-		throw new InjectorMissingMappingError('No mapping found for request ' + mappingId
-				+ ' and ' + fallbackMessage);
 	}
 
 	/**
@@ -544,14 +524,6 @@ class Injector extends EventDispatcher
 	 */
 	public function instantiateUnmapped(type:Class<Dynamic>) :Dynamic
 	{
-		if(!canBeInstantiated(type))
-		{
-			throw new InjectorInterfaceConstructionError(
-				"Can't instantiate interface " + Type.getClassName(type));
-		}
-		
-		
-		
 		var description:TypeDescription = _classDescriptor.getDescription(type);
 		var instance :Dynamic = description.ctor.createInstance(type, this);
 		if (hasEventListener(InjectionEvent.POST_INSTANTIATE)) {
@@ -571,19 +543,20 @@ class Injector extends EventDispatcher
 	public function destroyInstance(instance:Dynamic):Void
 	{
 		_managedObjects.remove(instance);
-		
+
 		#if (haxe_ver >= 3.40)
 		var type:Class<Dynamic> = Type.getClass(instance);
 		#else
 		var type:Class<Dynamic> = _reflector.getClass(instance);
-		#end		
+		#end
 
 		var typeDescription:TypeDescription = getTypeDescription(type);
-		// FIX
-		/*for (var preDestroyHook:PreDestroyInjectionPoint = typeDescription.preDestroyMethods; preDestroyHook; preDestroyHook = PreDestroyInjectionPoint(preDestroyHook.next))
-		{
-			preDestroyHook.applyInjection(instance, type, this);
-		}*/
+
+		if (typeDescription.preDestroyMethods != null) {
+			for (method in typeDescription.preDestroyMethods) {
+				method(instance);
+			}
+		}
 	}
 
 	/**
@@ -611,7 +584,7 @@ class Injector extends EventDispatcher
 		{
 			if (instance) objectsToRemove.push(instance);
 		}
-		
+
 		while(objectsToRemove.length > 0)
 		{
 			destroyInstance(objectsToRemove.pop());
@@ -647,8 +620,8 @@ class Injector extends EventDispatcher
 		return injector;
 	}
 
-	
-	
+
+
 	/**
 	 * Instructs the injector to use the description for the given type when constructing or
 	 * destroying instances.
@@ -675,42 +648,36 @@ class Injector extends EventDispatcher
 	{
 		return _reflector.describeInjections(type);
 	}
-	
+
 	public function hasMapping(type:Class<Dynamic>, name:String = ''):Bool
 	{
 		return getProvider(Type.getClassName(type) + '|' + name) != null;
 	}
-	
+
 	public function hasDirectMapping(type:Class<Dynamic>, name:String = ''):Bool
 	{
 		return _mappings.exists(Type.getClassName(type) + '|' + name);
 	}
 
-	
-	
+
+
 	//----------------------             Internal Methods               ----------------------//
 	public static function purgeInjectionPointsCache():Void
 	{
 		INJECTION_POINTS_CACHE = new Map<String,TypeDescription>();
-	}
-			
-	public function canBeInstantiated(type:Class<Dynamic>):Bool
-	{
-		var description:TypeDescription = _classDescriptor.getDescription(type);
-		return description.ctor != null;
 	}
 
 	public function getProvider(mappingId:String, fallbackToDefault:Bool = true):DependencyProvider
 	{
 		var softProvider:DependencyProvider = null;
 		var injector:Injector = this;
-		
-		
-		
+
+
+
 		while (injector != null)
 		{
 			var provider:DependencyProvider = injector.providerMappings[mappingId];
-			
+
 			if (provider != null)
 			{
 				if (Std.is(provider, SoftDependencyProvider))
@@ -724,7 +691,7 @@ class Injector extends EventDispatcher
 					injector = injector.parentInjector;
 					continue;
 				}
-				
+
 				return provider;
 			}
 			injector = injector.parentInjector;
@@ -771,7 +738,7 @@ class Injector extends EventDispatcher
 				'Can\'t change a mapping from inside a listener to it\'s creation event');
 		}
 		_mappingsInProcess.set(mappingId, true);
-		
+
 		hasEventListener(MappingEvent.PRE_MAPPING_CREATE) && dispatchEvent(
 			new MappingEvent(MappingEvent.PRE_MAPPING_CREATE, type, name, null));
 
@@ -787,33 +754,23 @@ class Injector extends EventDispatcher
 
 	private function applyInjectionPoints(target:Dynamic, targetType:Class<Dynamic>, description:TypeDescription):Void
 	{
-		var injectionPoint = description.injectionPoints;
 		if (hasEventListener(InjectionEvent.PRE_CONSTRUCT)) {
 			dispatchEvent(new InjectionEvent(InjectionEvent.PRE_CONSTRUCT, target, targetType));
 		}
 
-		var postConstructionInjectionsPoints: Array<InjectionPoint> = [];
-		while (injectionPoint != null)
-		{
-			if (Std.is(injectionPoint, PostConstructInjectionPoint)) {
-				postConstructionInjectionsPoints.push(injectionPoint);
-			} else {
-				injectionPoint.applyInjection(target, targetType, this);
+		if (description.injectionMethods != null) {
+			for (method in description.injectionMethods) {
+				method(target, this);
 			}
-
-			injectionPoint = injectionPoint.next;
 		}
 
-		for (injectionPoint in postConstructionInjectionsPoints) {
-			injectionPoint.applyInjection(target, targetType, this);
-
-			// we always only want to call the postContruct of the extending class and not of all inherited classes
-			// if you want to call the postConstruct of an inhereted class, use super.postConstruct
-			break;
+		if (description.postConstructionMethods != null) {
+			for (method in description.postConstructionMethods) {
+				method(target);
+			}
 		}
 
-		if (description.preDestroyMethods != null)
-		{
+		if (description.preDestroyMethods != null) {
 			_managedObjects.set(target, true);
 		}
 		hasEventListener(InjectionEvent.POST_CONSTRUCT) && dispatchEvent(new InjectionEvent(InjectionEvent.POST_CONSTRUCT, target, targetType));
