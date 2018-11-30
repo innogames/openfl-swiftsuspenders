@@ -87,7 +87,7 @@ class TypeDescriptionMacro {
 						var classCT = TPath(classTP);
 						var injectExprs = [];
 						for (field in c.fields.get()) {
-							processField(classCT, field, injectExprs, exprs);
+							processField(c, classCT, field, injectExprs, exprs);
 						}
 
 						if (injectExprs.length > 0) {
@@ -162,7 +162,7 @@ class TypeDescriptionMacro {
 		return c.constructor.get();
 	}
 
-	static function processField(classCT:ComplexType, field:ClassField, injectExprs:Array<Expr>, exprs:Array<Expr>) {
+	static function processField(c:ClassType, classCT:ComplexType, field:ClassField, injectExprs:Array<Expr>, exprs:Array<Expr>) {
 		var fieldName = field.name;
 
 		if (field.meta.has("inject")) {
@@ -197,21 +197,40 @@ class TypeDescriptionMacro {
 			}
 		}
 
-		inline function checkNoArgs() {
-			switch field.type {
-				case TFun([], _): // no-args function, ok
-				case _:
-					throw new Error("@PostConstruct/@PreDestroy function arguments are not yet supported", field.pos);
+		function checkMethod(meta:String) {
+			if (field.meta.has(meta)) {
+				switch field.type {
+					case TFun([], _): // no-args function, ok
+					case _: throw new Error("@PostConstruct/@PreDestroy function arguments are not yet supported", field.pos);
+				}
+
+				var isOverride = false;
+				{
+					// check if this field is an override of a superclass method which already have the @postConstruct/@preDestroy meta
+					// in which case we don't need to register this method, because it'll be registered when executing the registration
+					// code for the parent classes
+					var superClass = c.superClass;
+					while (superClass != null) {
+						var c = superClass.t.get();
+						var superField = Lambda.find(c.fields.get(), function(f) return f.name == field.name);
+						if (superField != null && superField.meta.has(meta)) {
+							isOverride = true;
+							break;
+						}
+						superClass = c.superClass;
+					}
+				}
+
+				return !isOverride;
 			}
+			return false;
 		}
 
-		if (field.meta.has("PostConstruct")) {
-			checkNoArgs();
+		if (checkMethod("PostConstruct")) {
 			exprs.push(macro description.addPostConstructMethod(function(o:$classCT) o.$fieldName()));
 		}
 
-		if (field.meta.has("PreDestroy")) {
-			checkNoArgs();
+		if (checkMethod("PreDestroy")) {
 			exprs.push(macro description.addPreDestroyMethod(function(o:$classCT) o.$fieldName()));
 		}
 	}
