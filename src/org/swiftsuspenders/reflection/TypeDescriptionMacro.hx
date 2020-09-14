@@ -18,6 +18,7 @@ using haxe.macro.Tools;
 // but that hangs up haxe 3 compiler. so when we're on haxe 4 we might want to revisit and simplify this
 class TypeDescriptionMacro {
 	static inline var META = ":TypeDescriptionAware";
+	static var INJECT: String;
 
 	static function build() {
 		if (Context.defined("display")) // don't do anything in display-mode (completion, etc.)
@@ -37,7 +38,8 @@ class TypeDescriptionMacro {
 	//
 	// we could registering this implicitly on first build-macro call, but this is a bit too complicated wrt compiler cache
 	// for me right now, so let's just call it with `--macro` explicitly
-	static function use() {
+	static function use(injectMetaData:String='inject') {
+		INJECT = injectMetaData;
 		if (Context.defined("display")) // don't do anything in display-mode (completion, etc.)
 			return;
 
@@ -126,7 +128,7 @@ class TypeDescriptionMacro {
 	static function getCtorExpr(c:ClassType):Expr {
 		var ctorField = getCtorField(c);
 		if (ctorField == null) {
-			return macro null;
+			return macro org.swiftsuspenders.typedescriptions.NoParamsConstructorInjectionPoint.instance;
 		}
 
 		switch ctorField.type {
@@ -165,15 +167,15 @@ class TypeDescriptionMacro {
 	static function processField(c:ClassType, classCT:ComplexType, field:ClassField, injectExprs:Array<Expr>, exprs:Array<Expr>) {
 		var fieldName = field.name;
 
-		if (field.meta.has("inject")) {
+		if (field.meta.has(INJECT)) {
 			switch field.kind {
 				case FVar(_, _):
-					var injectMeta = field.meta.extract("inject");
+					var injectMeta = field.meta.extract(INJECT);
 					var optional;
 					switch injectMeta[0].params {
 						case []:
 							optional = false;
-						case [{expr: EConst(CString("optional=true"))}]:
+						case [{expr: EConst(CString("optional=true"))}] | [{expr:EBinop(OpAssign,{expr:EConst(CIdent('optional'))}, {expr:EConst(CIdent('true'))})}]:
 							optional = true;
 						case _:
 							throw new Error("@inject with parameters other than `optional=true` are not yet supported", injectMeta[0].pos);
