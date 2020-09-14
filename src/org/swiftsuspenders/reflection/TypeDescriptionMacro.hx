@@ -163,12 +163,26 @@ class TypeDescriptionMacro {
 	}
 
 	static function processField(c:ClassType, classCT:ComplexType, field:ClassField, injectExprs:Array<Expr>, exprs:Array<Expr>) {
-		var fieldName = field.name;
 
-		if (field.meta.has(":inject")) {
+		function extractInjectMeta(m:MetaAccess, names:Array<String>) {
+			var result = null;
+			for (name in names) {
+				if (m.has(name)) {
+					if (result != null) {
+						var pos = m.extract(name)[0].pos;
+						throw new Error('Duplicate metadata: $name (already have $result)', pos);
+					}
+					result = name;
+				}
+			}
+			return result != null ? m.extract(result) : null;
+		}
+
+		var fieldName = field.name;
+		var injectMeta = extractInjectMeta(field.meta, ["inject", ":inject"]);
+		if (injectMeta != null) {
 			switch field.kind {
 				case FVar(_, _):
-					var injectMeta = field.meta.extract(":inject");
 					var optional;
 					switch injectMeta[0].params {
 						case []:
@@ -226,11 +240,11 @@ class TypeDescriptionMacro {
 			return false;
 		}
 
-		if (checkMethod(":postConstruct")) {
+		if (checkMethod(":postConstruct") || checkMethod("PostConstruct")) {
 			exprs.push(macro description.addPostConstructMethod(function(o:$classCT) o.$fieldName()));
 		}
 
-		if (checkMethod(":preDestroy")) {
+		if (checkMethod(":preDestroy") || checkMethod("PreDestroy")) {
 			exprs.push(macro description.addPreDestroyMethod(function(o:$classCT) o.$fieldName()));
 		}
 	}
