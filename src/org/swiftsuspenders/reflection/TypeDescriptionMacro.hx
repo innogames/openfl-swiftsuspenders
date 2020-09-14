@@ -18,7 +18,6 @@ using haxe.macro.Tools;
 // but that hangs up haxe 3 compiler. so when we're on haxe 4 we might want to revisit and simplify this
 class TypeDescriptionMacro {
 	static inline var META = ":TypeDescriptionAware";
-	static var INJECT: String;
 
 	static function build() {
 		if (Context.defined("display")) // don't do anything in display-mode (completion, etc.)
@@ -38,8 +37,7 @@ class TypeDescriptionMacro {
 	//
 	// we could registering this implicitly on first build-macro call, but this is a bit too complicated wrt compiler cache
 	// for me right now, so let's just call it with `--macro` explicitly
-	static function use(injectMetaData:String='inject') {
-		INJECT = injectMetaData;
+	static function use() {
 		if (Context.defined("display")) // don't do anything in display-mode (completion, etc.)
 			return;
 
@@ -167,18 +165,18 @@ class TypeDescriptionMacro {
 	static function processField(c:ClassType, classCT:ComplexType, field:ClassField, injectExprs:Array<Expr>, exprs:Array<Expr>) {
 		var fieldName = field.name;
 
-		if (field.meta.has(INJECT)) {
+		if (field.meta.has(":inject")) {
 			switch field.kind {
 				case FVar(_, _):
-					var injectMeta = field.meta.extract(INJECT);
+					var injectMeta = field.meta.extract(":inject");
 					var optional;
 					switch injectMeta[0].params {
 						case []:
 							optional = false;
-						case [{expr: EConst(CString("optional=true"))}] | [{expr:EBinop(OpAssign,{expr:EConst(CIdent('optional'))}, {expr:EConst(CIdent('true'))})}]:
+						case [{expr:EBinop(OpAssign,{expr:EConst(CIdent('optional'))}, {expr:EConst(CIdent('true'))})}]:
 							optional = true;
 						case _:
-							throw new Error("@inject with parameters other than `optional=true` are not yet supported", injectMeta[0].pos);
+							throw new Error("@:inject with parameters other than `optional=true` are not yet supported", injectMeta[0].pos);
 					}
 
 					var mappingId = field.type.follow().toString();
@@ -195,7 +193,7 @@ class TypeDescriptionMacro {
 						injectExprs.push(macro target.$fieldName = $instanceExpr);
 					}
 				case FMethod(_):
-					throw new Error("@inject can only be applied to var fields", field.pos);
+					throw new Error("@:inject can only be applied to var fields", field.pos);
 			}
 		}
 
@@ -203,12 +201,12 @@ class TypeDescriptionMacro {
 			if (field.meta.has(meta)) {
 				switch field.type {
 					case TFun([], _): // no-args function, ok
-					case _: throw new Error("@PostConstruct/@PreDestroy function arguments are not yet supported", field.pos);
+					case _: throw new Error("@:postConstruct/@:preDestroy function arguments are not yet supported", field.pos);
 				}
 
 				var isOverride = false;
 				{
-					// check if this field is an override of a superclass method which already have the @postConstruct/@preDestroy meta
+					// check if this field is an override of a superclass method which already have the @:postConstruct/@:preDestroy meta
 					// in which case we don't need to register this method, because it'll be registered when executing the registration
 					// code for the parent classes
 					var superClass = c.superClass;
@@ -228,11 +226,11 @@ class TypeDescriptionMacro {
 			return false;
 		}
 
-		if (checkMethod("PostConstruct")) {
+		if (checkMethod(":postConstruct")) {
 			exprs.push(macro description.addPostConstructMethod(function(o:$classCT) o.$fieldName()));
 		}
 
-		if (checkMethod("PreDestroy")) {
+		if (checkMethod(":preDestroy")) {
 			exprs.push(macro description.addPreDestroyMethod(function(o:$classCT) o.$fieldName()));
 		}
 	}
