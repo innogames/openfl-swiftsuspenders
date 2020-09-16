@@ -187,10 +187,10 @@ class TypeDescriptionMacro {
 					switch injectMeta[0].params {
 						case []:
 							optional = false;
-						case [{expr:EBinop(OpAssign,{expr:EConst(CIdent('optional'))}, {expr:EConst(CIdent('true'))})}]:
+						case [{expr: EConst(CString("optional=true"))}] | [{expr:EBinop(OpAssign,{expr:EConst(CIdent('optional'))}, {expr:EConst(CIdent('true'))})}]:
 							optional = true;
 						case _:
-							throw new Error("@:inject with parameters other than `optional=true` are not yet supported", injectMeta[0].pos);
+							throw new Error("@inject or @:inject with parameters other than `optional=true` are not yet supported", injectMeta[0].pos);
 					}
 
 					var mappingId = field.type.follow().toString();
@@ -207,7 +207,7 @@ class TypeDescriptionMacro {
 						injectExprs.push(macro target.$fieldName = $instanceExpr);
 					}
 				case FMethod(_):
-					throw new Error("@:inject can only be applied to var fields", field.pos);
+					throw new Error("@inject or @:inject can only be applied to var fields", field.pos);
 			}
 		}
 
